@@ -214,18 +214,56 @@ def setup_logging():
         handlers=[file_handler, console_handler]
     )
 
+    # 降低第三方库冗余日志（例如 py4j clientserver 关闭提示）
+    try:
+        logging.getLogger("py4j").setLevel(logging.WARN)
+        logging.getLogger("py4j.clientserver").setLevel(logging.WARN)
+    except Exception:
+        pass
+
 def main():
     """主函数"""
 
     # 设置日志
     setup_logging()
     
+    # 运行期配置（控制退出行为），提供默认值以防配置缺失
+    runtime_config = {
+        'stop_spark_on_exit': True,
+        'wait_on_exit': False,
+        'wait_seconds': 0
+    }
+
     try:
         # 设置环境变量
         setup_environment()
         
         # 检查配置
         config_manager = ConfigManager()
+        
+        # 检查是否启用Hive支持
+        hive_config = config_manager.get_hive_config()
+        if hive_config.get('enable_hive_support', False):
+            print("🔄 检测到Hive模式已启用，切换到hive.py执行...")
+            print("=" * 60)
+            # 使用 subprocess 运行 hive.py，避免命名冲突
+            try:
+                import subprocess
+                result = subprocess.run(
+                    [sys.executable, 'hive.py'] + sys.argv[1:],
+                    cwd=os.path.dirname(os.path.abspath(__file__))
+                )
+                sys.exit(result.returncode)
+            except Exception as e:
+                print(f"❌ 执行Hive模式时出错: {e}")
+                logging.error(f"Hive模式执行失败: {e}", exc_info=True)
+                sys.exit(1)
+        
+        # 读取运行期控制配置
+        try:
+            runtime_config = config_manager.get_runtime_config()
+        except Exception:
+            pass
         print("✅ 配置检查完成")
         
         # 根据命令行参数决定执行模式
@@ -248,7 +286,27 @@ def main():
         logging.error(f"程序执行异常: {e}", exc_info=True)
         sys.exit(1)
     finally:
-        SparkUtil.stop_spark_session()
+        # 可配置的收尾逻辑：是否停止Spark、是否等待
+        if runtime_config.get('wait_on_exit'):
+            wait_seconds = int(runtime_config.get('wait_seconds') or 0)
+            if wait_seconds > 0:
+                print(f"\n⏳ 等待 {wait_seconds}s 后再退出（可用于观察日志/避免环境即时收缩）...")
+                try:
+                    import time
+                    time.sleep(wait_seconds)
+                except Exception:
+                    pass
+            else:
+                try:
+                    input("\n⏸ 按回车键退出...")
+                except Exception:
+                    pass
+
+        if runtime_config.get('stop_spark_on_exit', True):
+            print("\n🚪 关闭Spark Session...")
+            SparkUtil.stop_spark_session()
+        else:
+            print("\n🛑 已按配置保留 Spark Session（不主动关闭）。")
 
 if __name__ == "__main__":
     main()

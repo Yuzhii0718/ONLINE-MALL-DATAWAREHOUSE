@@ -62,7 +62,8 @@ class SparkUtil:
                 .set("spark.driver.memory", spark_config['driver_memory']) \
                 .set("spark.executor.memory", spark_config['executor_memory']) \
                 .set("spark.driver.maxResultSize", spark_config['max_result_size']) \
-                .set("spark.jars", mysql_config['jdbc_jar'])
+                .set("spark.jars", mysql_config['jdbc_jar']) \
+                .set("spark.sql.legacy.createHiveTableByDefault", "false")
             
             # 创建Spark Session
             spark = SparkSession.builder \

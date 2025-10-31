@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-这是一个基于 PySpark 3.1.0的电商离线数据仓库项目，采用分层架构设计，实现从业务数据到可视化展示的完整数据流处理。
+这是一个基于PySpark 3.1.0的电商离线数据仓库项目，采用分层架构设计，实现从业务数据到可视化展示的完整数据流处理。
 
 ## 技术架构
 
@@ -75,9 +75,11 @@ GMALL-Data-Warehouse/
 ### 2. 外部依赖
 
 - Hadoop 3.1.0
+- Hive 3.1.0(可选)
 - Java 8
 - MySQL 8.3
-- Superset
+- Superset(可选)
+- PowerShell 7(可选)
 
 ### 3. 配置文件设置
 
@@ -85,17 +87,28 @@ GMALL-Data-Warehouse/
 
 ```ini
 [mysql]
+service_name = MySQL83
 host = localhost
 port = 3306
 database = gmall
 username = root
 password = 123456
+hive_database = hive
+hive_username = hive
+hive_password = hive
 driver = com.mysql.cj.jdbc.Driver
 jdbc_jar = jars/mysql-connector-j-8.0.33.jar
 
 [hdfs]
 namenode = hdfs://localhost:9697
 user = root
+
+[paths]
+ods_path = hdfs://localhost:9697/gmall/ods
+dwd_path = hdfs://localhost:9697/gmall/dwd
+dim_path = hdfs://localhost:9697/gmall/dim
+dws_path = hdfs://localhost:9697/gmall/dws
+ads_path = hdfs://localhost:9697/gmall/ads
 
 [spark]
 app_name = GMALL-DataWarehouse
@@ -105,18 +118,24 @@ driver_memory = 8g
 executor_memory = 8g
 max_result_size = 4g
 
-[paths]
-ods_path = hdfs://localhost:9697/gmall/ods
-dwd_path = hdfs://localhost:9697/gmall/dwd
-dim_path = hdfs://localhost:9697/gmall/dim
-dws_path = hdfs://localhost:9697/gmall/dws
-ads_path = hdfs://localhost:9697/gmall/ads
+[hive]
+enable_hive_support = false
 
 [environment]
+enable_env_config = true
 hadoop_home = C:\Environment\JDK\hadoop-3.1.0
+hive_home = C:\Environment\JDK\hive-3.1.0
 java_home = C:\Environment\JDK\temurin-1.8.0_432
 pyspark_python = D:\Environment\Python\conda\pyspark310\python.exe
 pyspark_driver_python = D:\Environment\Python\conda\pyspark310\python.exe
+
+[runtime]
+# 是否在程序结束时停止Spark Session（仅影响Spark，不会主动调用 stop-dfs）
+stop_spark_on_exit = true
+# 是否在退出前等待（true: 等待；false: 不等待）
+wait_on_exit = false
+# 等待秒数（>0 时采用定时等待；为0时改为按回车键确认退出）
+wait_seconds = 0
 ```
 
 > 源码中不包含 `mysql-connector-j-8.0.33.jar`，请自行下载并放置在 `jars/` 目录下。根据自己环境选择合适的MySQL JDBC驱动版本。
@@ -165,11 +184,11 @@ python main.py dws_to_ads
 
 ## 导入 MySQL 数据
 
-存在 document 中，`.sql` 文件，包含 MySQL 数据库的表结构和示例数据。
+存在 assets 中，`.sql` 文件，包含 MySQL 数据库的表结构和示例数据。
 
 ## 配置 Superset/MySQL/Hadoop
 
-[guide.md](./document/guide.md) 中有详细的配置说明。
+[env-guide.md](./document/env-guide.md) 中有详细的配置说明。
 
 ## 数据层说明
 
@@ -300,11 +319,3 @@ python main.py dws_to_ads
 ## 联系信息
 
 如有问题，请检查日志文件或联系开发者。
-
----
-
-**版本**: 1.0.0  
-**更新时间**: 2025-06-23  
-**开发者**: Medici
-
-课设作品，没有长期维护计划。

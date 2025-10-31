@@ -49,6 +49,7 @@ def setup_environment():
         # 验证配置文件中的路径是否存在
         paths_to_check = {
             'HADOOP_HOME': env_config.get('hadoop_home', ''),
+            'HIVE_HOME': env_config.get('hive_home', ''),
             'JAVA_HOME': env_config.get('java_home', ''),
         }
         
@@ -68,9 +69,17 @@ def setup_environment():
             os.environ["PATH"] += f";{env_config['hadoop_home']}\\bin"
             print(f"  ✓ HADOOP_HOME: {env_config['hadoop_home']}")
         
+        # Hive环境配置（可选）
+        if env_config.get('hive_home'):
+            os.environ['HIVE_HOME'] = env_config['hive_home']
+            os.environ["PATH"] += f";{env_config['hive_home']}\\bin"
+            print(f"  ✓ HIVE_HOME: {env_config['hive_home']}")
+
         # Java环境配置
         if env_config.get('java_home'):
             os.environ['JAVA_HOME'] = env_config['java_home']
+            # 确保 jps 可用：将 JAVA_HOME\bin 追加到 PATH
+            os.environ["PATH"] += f";{env_config['java_home']}\\bin"
             print(f"  ✓ JAVA_HOME: {env_config['java_home']}")
         
         # Python环境配置
@@ -94,6 +103,7 @@ def get_current_env_info():
     """获取当前环境变量信息（用于调试）"""
     env_vars = {
         'HADOOP_HOME': os.environ.get('HADOOP_HOME'),
+        'HIVE_HOME': os.environ.get('HIVE_HOME'),
         'JAVA_HOME': os.environ.get('JAVA_HOME'),
         'PYSPARK_PYTHON': os.environ.get('PYSPARK_PYTHON'),
         'PYSPARK_DRIVER_PYTHON': os.environ.get('PYSPARK_DRIVER_PYTHON'),
